@@ -1,0 +1,142 @@
+name: module-test
+on: # mainブランチへのPull Requestで実行
+  pull_request:
+    branches: [ main ]
+    # 特定のパスが変更された場合のみ実行
+    paths:
+      - 05_02_module_test/**
+jobs:    
+  module-validation: # コードの有効性
+    # 実行環境、ディレクトリを指定
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        working-directory: 05_02_module_test/module
+    steps:
+      # セットアップ
+      - uses: actions/checkout@v2
+      
+      - name: terraformのセットアップ
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.1.7
+
+      # 実行コマンドを指定
+      - run: terraform fmt -check -recursive
+      - run: terraform init
+      - run: terraform validate -no-color
+
+      - name: TFlintによるコードのチェック
+        uses: reviewdog/action-tflint@master
+        with:
+          github_token: ${{ secrets.github_token }}
+
+  module-policy-test: # 設計ポリシー
+    needs: module-validation
+    # 実行環境、ディレクトリを指定
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        working-directory: 05_02_module_test/module
+    steps:
+      # セットアップ
+      - uses: actions/checkout@v2
+
+      # 実行コマンドを指定
+      - name: Checkovによるポリシー準拠の確認
+        uses: bridgecrewio/checkov-action@master
+        continue-on-error: true # 本来はエラーで終了するがサンプル用に続行
+
+  module-func-test: # コードの振る舞い-関数テスト
+    needs: module-validation
+    # 実行環境、ディレクトリを指定
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        working-directory: 05_02_module_test/func_test
+    steps:
+      # セットアップ
+      - uses: actions/checkout@v2
+
+      - name: GCPの認証
+        uses: google-github-actions/auth@v0
+        with:
+          credentials_json: |
+            ${{ secrets.GOOGLE_CREDENTIALS }}
+      
+      - name: terraformのセットアップ
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.1.7
+          terraform_wrapper: false
+
+      - name: Go環境の準備
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+          
+      # 実行コマンドを指定
+      - name: Terratestによる関数テスト
+        run: go test
+
+  module-plan: # コードの振る舞い-デプロイの影響予測
+    needs: module-validation
+    # 実行環境、ディレクトリを指定
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        working-directory: 05_02_module_test/module/example
+    steps:
+      # セットアップ
+      - uses: actions/checkout@v2
+
+      - name: GCPの認証
+        uses: google-github-actions/auth@v0
+        with:
+          credentials_json: |
+            ${{ secrets.GOOGLE_CREDENTIALS }}
+      
+      - name: terraformのセットアップ
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.1.7
+          
+      # 実行コマンドを指定
+      - run: terraform init
+      - run: terraform plan -no-color
+
+  module-unit-test: # インフラの振る舞い-ユニットテスト
+    needs: [
+      module-policy-test,
+      module-func-test,
+      module-plan
+    ]
+    # 実行環境、ディレクトリを指定
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        working-directory: 05_02_module_test/unit_test
+    steps:
+      # セットアップ
+      - uses: actions/checkout@v2
+
+      - name: GCPの認証
+        uses: google-github-actions/auth@v0
+        with:
+          credentials_json: |
+            ${{ secrets.GOOGLE_CREDENTIALS }}
+      
+      - name: terraformのセットアップ
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.1.7
+          terraform_wrapper: false
+
+      - name: Go環境の準備
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      # 実行コマンドを指定
+      - name: Terratestによるユニットテスト
+        run: go test

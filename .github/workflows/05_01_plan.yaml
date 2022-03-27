@@ -1,0 +1,30 @@
+name: terraform-plan
+on: # mainブランチへのPull Requestで実行
+  pull_request:
+    branches: [ main ]
+    # 特定のパスが変更された場合のみ実行
+    paths:
+      - 05_01_plan/**
+jobs:
+  plan:
+    # 実行環境、ディレクトリを指定
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        shell: bash
+        working-directory: 05_01_plan
+    steps:
+      # セットアップ
+      - uses: actions/checkout@v2
+      - name: GCPの認証
+        uses: google-github-actions/auth@v0
+        with:
+          credentials_json: |
+            ${{ secrets.GOOGLE_CREDENTIALS }}
+      - name: terraformのセットアップ
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.1.7
+      # 実行コマンドを指定
+      - run: terraform init
+      - run: terraform plan -no-color

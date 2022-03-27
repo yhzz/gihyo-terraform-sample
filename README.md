@@ -1,2 +1,7 @@
-# gihyo-terraform-sample
+# WEB+DB PRESS Vol.128 特集2「ゼロから学ぶTerraform」サンプルコード
+
 技術評論社刊「WEB+DB PRESS Vol.128」の特集2「ゼロから学ぶTerraform」のサンプルコードです。
+
+* 章立てに合わせてディレクトリをナンバリング
+* 実行環境、実行手順、内容説明は誌面に記載
+* コードは説明のため極力簡易的な手法を採用
