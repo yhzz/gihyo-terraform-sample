@@ -7,7 +7,7 @@ resource "google_compute_instance" "this" {
   boot_disk {
     initialize_params {
       # GCPが管理するubuntuのイメージを利用する
-      image = "ubuntu-1804-bionic-v20220131"
+      image = "ubuntu-1804-bionic-v20220325"
     }
   }
   network_interface {
